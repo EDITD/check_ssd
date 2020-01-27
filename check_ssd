@@ -46,6 +46,9 @@ DEBUG=0
 HAS_SSD=0
 BRAND="SAMSUNG\|INTEL"
 
+SMART_ATTRIBUTE_MATCH="^177\|^233|^202"
+NVME_ATTRIBUTE_MATCH="^wear_leveling|^available_spare\s"
+
 # Declare as arrays
 declare -A CONTROLLERS
 declare -A BLOCKDEVICE
@@ -211,12 +214,12 @@ function checkDID () {
       if [ $DEBUG -eq 1 ]; then echo "Checking DID number $d on controller $1 with driver $DRIVER"; fi
       if [ "$DRIVER" = "auto" ]; then
         if [[ $d =~ ^/dev/nvme.* ]]; then
-                VALUE=`echo \`$NVMECLI smart-log-add $d | grep "^wear_leveling" | tr -d '%' | awk '{ print $3 }'\` + 0 | bc`
+                VALUE=`echo \`$NVMECLI smart-log $d | grep -E $NVME_ATTRIBUTE_MATCH | tr -d '%' | awk '{ print $3 }'\` + 0 | bc`
         else
-                VALUE=`echo \`$SMARTCTL -A -d auto $d | grep "^177\|^233" | awk '{ print $4 }'\` + 0 | bc`  
+                VALUE=`echo \`$SMARTCTL -A -d auto $d | grep -E $SMART_ATTRIBUTE_MATCH | awk '{ print $4 }'\` + 0 | bc`
         fi
       else
-        VALUE=`echo \`$SMARTCTL -A -d $DRIVER,$d ${BLOCKDEVICE[$1]} | grep "^177\|^233" | awk '{ print $4 }'\` + 0 | bc`  
+        VALUE=`echo \`$SMARTCTL -A -d $DRIVER,$d ${BLOCKDEVICE[$1]} | grep -E $SMART_ATTRIBUTE_MATCH | awk '{ print $4 }'\` + 0 | bc`
       fi
       case $VALUE in
       100)
